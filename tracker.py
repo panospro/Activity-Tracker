@@ -56,15 +56,20 @@ def plot_activity_summary():
         print("No data available to generate a report.")
         return
 
-    fig, axes = plt.subplots(1, 2, figsize=(14, 7))
-    plt.sca(axes[0])
+    # Create subplots with 1 or 2 axes depending on whether "Other" data exists
+    num_plots = 2 if other_data else 1
+    fig, axes = plt.subplots(1, num_plots, figsize=(14, 7))  # Adjust number of subplots based on data
+
+    # Ensure axes is always iterable (even if it's a single axis)
+    if num_plots == 1:
+        axes = [axes]
+
+    plt.sca(axes[0])  # Plot category summary
     plot_pie_chart(category_data, 'Category', 'Time Spent by Category')
 
-    plt.sca(axes[1])
     if other_data:
+        plt.sca(axes[1])  # Plot "Other" category
         plot_pie_chart(other_data, 'Window Title', 'Time Spent on "Other" Category')
-    else:
-        print("No data categorized as 'Other'.")
 
     plt.tight_layout()
     plt.show()
