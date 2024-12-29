@@ -55,7 +55,8 @@ def categorize_data():
         "GitHub Desktop": "GitHub Desktop",
         "MongoDB Compass": "MongoDB Compass",
         "Notepad++": "Notepad++",
-        "League of Legends": "League of Legends"
+        "League of Legends": "League of Legends",
+        "Ζωγραφική": "Paint"
     }
 
     with sqlite3.connect('time_tracking.db') as conn:

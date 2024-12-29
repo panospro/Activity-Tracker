@@ -31,25 +31,40 @@ def log_activity(window_title):
             (window_title,)
         )
 
-# **Generate and Plot Data**
-def plot_activity_summary():
+# Fetches data from db
+def fetch_data(query, params=()):
     with sqlite3.connect('time_tracking.db') as conn:
-        data = conn.execute(
-            '''
-            SELECT category, COUNT(*) as count 
-            FROM activity_logs 
-            WHERE category IS NOT NULL
-            GROUP BY category
-            '''
-        ).fetchall()
+        return conn.execute(query, params).fetchall()
 
-    if not data:
+# Generates a pie chart
+def plot_pie_chart(data, labels, title):
+    counts = [row[1] for row in data]
+    labels = [row[0] or 'Unnamed' for row in data]
+    plt.pie(counts, labels=labels, autopct='%1.1f%%', startangle=140)
+    plt.title(title)
+
+# Displays the activity summary with all categories and category 'Other'.
+def plot_activity_summary():
+    category_data = fetch_data(
+        '''SELECT category, COUNT(*) FROM activity_logs WHERE category IS NOT NULL GROUP BY category'''
+    )
+    other_data = fetch_data(
+        '''SELECT window_title, COUNT(*) FROM activity_logs WHERE category = "Other" GROUP BY window_title'''
+    )
+
+    if not category_data:
         print("No data available to generate a report.")
         return
 
-    categories = [row[0] or 'Uncategorized' for row in data]
-    counts = [row[1] for row in data]
+    fig, axes = plt.subplots(1, 2, figsize=(14, 7))
+    plt.sca(axes[0])
+    plot_pie_chart(category_data, 'Category', 'Time Spent by Category')
 
-    plt.pie(counts, labels=categories, autopct='%1.1f%%', startangle=140)
-    plt.title('Time Spent by Category')
+    plt.sca(axes[1])
+    if other_data:
+        plot_pie_chart(other_data, 'Window Title', 'Time Spent on "Other" Category')
+    else:
+        print("No data categorized as 'Other'.")
+
+    plt.tight_layout()
     plt.show()
