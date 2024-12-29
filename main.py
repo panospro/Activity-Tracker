@@ -2,10 +2,9 @@ import time
 from database import setup_database, categorize_data, drop_tables, clear_other_category_data
 from tracker import get_active_window_title, log_activity, plot_activity_summary
 
-# TODO: Refactor it, optimize it and make better graphs because if lots of categories its messy, then make it per day or something
+# TODO: Make better graphs because if lots of categories its messy, then make it per day or something
 # TODO: Find a simpler way to do it and maybe recognize the windows that are open instead of adding them by hand one by one and maybe keep track of time they are open instead of doing random 5 sec intervals  
 # TODO: Find a way to run it without having vscode open
-# TODO: Make it if a new category is added to make the user add a name or something else put them on the discarded ones
 
 # **Main Script**
 def main():
