@@ -31,23 +31,20 @@ def drop_tables():
         conn.execute('DROP TABLE IF EXISTS categories')
 
 # **Remove Specific Logs**
-def remove_specific_logs():
+def remove_specific_logs(cursor, window_titles_to_remove):
+    query = "DELETE FROM activity_logs WHERE " + " OR ".join(
+        ["window_title LIKE ?" for _ in window_titles_to_remove]
+    )
+    cursor.execute(query, tuple(f"%{title}%" for title in window_titles_to_remove))
+    print("Logs with specified titles have been removed.")
+
+def categorize_data():
     window_titles_to_remove = [
-        "Εναλλαγή εργασιών", "Selected Tab", 
+        "Εναλλαγή εργασιών", "Selected Tab",
         "Error retrieving window title: pid must be a positive integer (got -1238378576)",
         "Διαχείριση Εργασιών", "Unknown Window (Process: explorer.exe)"
     ]
 
-    with sqlite3.connect('time_tracking.db') as conn:
-        query = "DELETE FROM activity_logs WHERE " + " OR ".join(
-            ["window_title LIKE ?" for _ in window_titles_to_remove]
-        )
-        conn.execute(query, tuple(f"%{title}%" for title in window_titles_to_remove))
-    
-    print("Logs with specified titles have been removed.")
-
-# **Categorize Activities**
-def categorize_data():
     keyword_to_category = {
         "visual studio code": "Visual Studio Code",
         "youtube": "YouTube",
@@ -62,34 +59,29 @@ def categorize_data():
     }
 
     with sqlite3.connect('time_tracking.db') as conn:
-        # Fetch uncategorized logs
-        logs = conn.execute(
-            'SELECT id, window_title FROM activity_logs WHERE category IS NULL'
-        ).fetchall()
+        cursor = conn.cursor()
 
-        print("Uncategorized Logs:")
-        print(logs)
+        # Remove specific logs
+        remove_specific_logs(cursor, window_titles_to_remove)
 
-        # Categorize logs
+        # Fetch all uncategorized logs
+        cursor.execute('SELECT id, window_title FROM activity_logs WHERE category IS NULL')
+        logs = cursor.fetchall()
+        print("Uncategorized Logs:", logs)
+
+        # Update categories based on keywords
         for log_id, window_title in logs:
             category = next(
-                (mapped_category for keyword, mapped_category in keyword_to_category.items() if keyword.lower() in window_title.lower()),
-                'Other'
+                (mapped_category for keyword, mapped_category in keyword_to_category.items()
+                 if keyword.lower() in window_title.lower()), "Other"  # Default to 'Other' if no category matches
             )
-            conn.execute(
-                'UPDATE activity_logs SET category = ? WHERE id = ?',
-                (category, log_id)
-            )
+            cursor.execute('UPDATE activity_logs SET category = ? WHERE id = ?', (category, log_id))
 
-        remove_specific_logs()
+        conn.commit()
 
-        # Fetch logs categorized as 'Other'
-        other_logs = conn.execute(
-            'SELECT id, window_title FROM activity_logs WHERE category = "Other"'
-        ).fetchall()
-
-        print("\nLogs categorized as 'Other':")
-        for log in other_logs:
-            print(log)
+        # Fetch and print logs categorized as 'Other'
+        cursor.execute('SELECT id, window_title FROM activity_logs WHERE category = "Other"')
+        other_logs = cursor.fetchall()
+        print("\nLogs categorized as 'Other':", other_logs)
 
     print("Categorization complete.")
