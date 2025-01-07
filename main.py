@@ -1,12 +1,11 @@
-import time
 from database import setup_database, categorize_data, drop_tables, clear_other_category_data
-from tracker import get_active_window_title, log_activity
 from plots import plot_activity_summary
+from tracker import track_active_window
 
-# TODO: Make better graphs because if lots of categories its messy, 
+# TODO: Make better graphs because if lots of categories its messy
 # TODO: Make the graphs per day or something
-# TODO: Find a simpler way to do it and maybe recognize the windows that are open instead of adding them by hand one by one and maybe keep track of time they are open instead of doing random 5 sec intervals  
-# TODO: Find a way to run it without having vscode open
+# TODO: Find a way to run it without having vscode open (pyinstaller)
+# TODO: See if that approach takes lots of resources
 
 # NOTE: Use plotly for hoverable tooltips showing additional information (e.g., exact percentages and totals).
 # NOTE: Highlight the largest slice by exploding it slightly
@@ -16,17 +15,16 @@ def main():
     # drop_tables()
     # clear_other_category_data()
 
-    print("Tracking started. Press Ctrl+C to stop and generate report.")
     try:
-        while True:
-            window_title = get_active_window_title()
-            log_activity(window_title)
-            time.sleep(1)  # Log every 5 seconds
+        track_active_window()  # Start tracking windows
     except KeyboardInterrupt:
-        print("\nCategorizing data...")
-        categorize_data()
+        print("\nTracking stopped by user.")
+    finally:
+        # Ensure these steps always run after tracking, even if interrupted
+        categorize_data()  # Categorize logged data
+
         print("Generating report...")
-        plot_activity_summary()
+        plot_activity_summary()  # Generate and display the report
 
 if __name__ == '__main__':
     main()

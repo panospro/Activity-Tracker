@@ -3,14 +3,18 @@ import sqlite3
 # **Database Setup**
 def setup_database():
     with sqlite3.connect('time_tracking.db') as conn:
+        # Create or ensure the `activity_logs` table exists
         conn.execute('''
             CREATE TABLE IF NOT EXISTS activity_logs (
                 id INTEGER PRIMARY KEY AUTOINCREMENT,
                 timestamp TEXT,
                 window_title TEXT,
-                category TEXT
+                category TEXT,
+                time_spent REAL
             )
         ''')
+
+        # Create or ensure the `categories` table exists
         conn.execute('''
             CREATE TABLE IF NOT EXISTS categories (
                 id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -36,7 +40,6 @@ def remove_specific_logs(cursor, window_titles_to_remove):
         ["window_title LIKE ?" for _ in window_titles_to_remove]
     )
     cursor.execute(query, tuple(f"%{title}%" for title in window_titles_to_remove))
-    print("Logs with specified titles have been removed.")
 
 def categorize_data():
     window_titles_to_remove = [
@@ -68,7 +71,6 @@ def categorize_data():
         # Fetch all uncategorized logs
         cursor.execute('SELECT id, window_title FROM activity_logs WHERE category IS NULL')
         logs = cursor.fetchall()
-        print("Uncategorized Logs:", logs)
 
         # Update categories based on keywords
         for log_id, window_title in logs:
@@ -80,9 +82,8 @@ def categorize_data():
 
         conn.commit()
 
+        # TODO: Remove it because a graph is created to show 'other' categories.
         # Fetch and print logs categorized as 'Other'
         cursor.execute('SELECT id, window_title FROM activity_logs WHERE category = "Other"')
         other_logs = cursor.fetchall()
         print("\nLogs categorized as 'Other':", other_logs)
-
-    print("Categorization complete.")
