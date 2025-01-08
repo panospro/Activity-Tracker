@@ -32,7 +32,7 @@ def create_gui_calendar():
             return
 
         # Set up the chart with appropriate title and labels
-        plot_bar_chart(data, title, xlabel="Category", ylabel="Time (seconds)")
+        plot_bar_chart(data, title, xlabel="Category", ylabel="Time (minutes)")
 
         # Create the matplotlib figure and render it inside Tkinter canvas
         fig = plt.gcf()  # Get current figure

@@ -47,7 +47,9 @@ def plot_bar_chart(data, title, xlabel, ylabel):
     plt.ylabel(ylabel, fontsize=12)
     plt.xticks(rotation=0, ha="center", fontsize=10)
     plt.grid(axis="y", linestyle="--", alpha=0.7)
-    plt.tight_layout()
+
+    y_ticks = np.arange(0, np.ceil(max(values) / 30) * 30 + 1, 30)
+    plt.yticks(y_ticks, labels=[f"{i/60:.1f}m" for i in y_ticks])
 
 # Displays the activity summary with all categories and category 'Other'
 def plot_activity_summary():
