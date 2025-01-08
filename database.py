@@ -87,3 +87,23 @@ def categorize_data():
         cursor.execute('SELECT id, window_title FROM activity_logs WHERE category = "Other"')
         other_logs = cursor.fetchall()
         print("\nLogs categorized as 'Other':", other_logs)
+
+def fetch_time_by_category_for_date(date):
+    query = '''
+        SELECT category, SUM(time_spent) 
+        FROM activity_logs 
+        WHERE date(timestamp) = ? 
+        GROUP BY category
+    '''
+    with sqlite3.connect('time_tracking.db') as conn:
+        return conn.execute(query, (date,)).fetchall()
+
+def fetch_time_by_category_for_week(start_date, end_date):
+    query = '''
+        SELECT category, SUM(time_spent) 
+        FROM activity_logs 
+        WHERE date(timestamp) BETWEEN ? AND ? 
+        GROUP BY category
+    '''
+    with sqlite3.connect('time_tracking.db') as conn:
+        return conn.execute(query, (start_date, end_date)).fetchall()
