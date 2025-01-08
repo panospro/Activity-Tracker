@@ -1,6 +1,7 @@
 from database import setup_database, categorize_data, drop_tables, clear_other_category_data
 from plots import plot_activity_summary
 from tracker import track_active_window
+from calendar_gui import create_gui_calendar
 
 # TODO: Make better graphs because if lots of categories its messy
 # TODO: Make the graphs per day or something
@@ -28,3 +29,4 @@ def main():
 
 if __name__ == '__main__':
     main()
+    create_gui_calendar()

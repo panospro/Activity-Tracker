@@ -59,7 +59,8 @@ def categorize_data():
         "MongoDB Compass": "MongoDB Compass",
         "Notepad++": "Notepad++",
         "League of Legends": "League of Legends",
-        "Ζωγραφική": "Paint"
+        "Ζωγραφική": "Paint",
+        "Folder": "Folder"
     }
 
     with sqlite3.connect('time_tracking.db') as conn:

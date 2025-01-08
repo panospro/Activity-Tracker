@@ -40,15 +40,14 @@ def plot_pie_chart(data, labels, title):
     plt.title(title, fontsize=14, weight="bold")
 
 def plot_bar_chart(data, title, xlabel, ylabel):
-    labels = [row[0] or 'Unnamed' for row in data]
-    values = [row[1] for row in data]
-    
-    plt.bar(labels, values, color=cm.tab20c(np.linspace(0, 1, len(labels))))
+    labels, values = zip(*[(row[0] or 'Unnamed', row[1]) for row in data])
+    plt.bar(labels, values, color=cm.tab20c(np.linspace(0, 1, len(labels))), width=0.5)
     plt.title(title, fontsize=14, weight="bold")
     plt.xlabel(xlabel, fontsize=12)
     plt.ylabel(ylabel, fontsize=12)
-    plt.xticks(rotation=45, ha="right", fontsize=10)
+    plt.xticks(rotation=0, ha="center", fontsize=10)
     plt.grid(axis="y", linestyle="--", alpha=0.7)
+    plt.tight_layout()
 
 # Displays the activity summary with all categories and category 'Other'
 def plot_activity_summary():

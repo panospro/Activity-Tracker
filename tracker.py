@@ -9,13 +9,16 @@ def get_active_window_title():
     try:
         hwnd = win32gui.GetForegroundWindow()  # Active window handle
         window_title = win32gui.GetWindowText(hwnd)  # Active window title
+        _, pid = win32process.GetWindowThreadProcessId(hwnd)
+        process_name = psutil.Process(pid).name()
+
+        # Check if the process is File Explorer (explorer.exe) and window title contains folder-related terms
+        if process_name.lower() == "explorer.exe":
+            return 'Folder'
 
         if window_title:
             return window_title
 
-        # Retrieve process ID if title is empty
-        _, pid = win32process.GetWindowThreadProcessId(hwnd)
-        process_name = psutil.Process(pid).name()
         return f"Unknown Window (Process: {process_name})"
     except Exception as e:
         return f"Error retrieving window title: {e}"
