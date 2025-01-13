@@ -7,7 +7,7 @@ import matplotlib.pyplot as plt
 from database import fetch_time_by_category_for_date, fetch_time_by_category_for_week
 from plots import plot_bar_chart
 
-def analytics_tab(notebook):
+def analytics_tab(parent):
     def show_data(is_week=False):
         selected_date = calendar.get_date()
         if is_week:
@@ -27,7 +27,7 @@ def analytics_tab(notebook):
         plt.clf()
 
         if not data:
-            tk.Label(plot_frame, text="No data available.", font=("Arial", 14), bg="#f9f9f9").pack(pady=20)
+            tk.Label(plot_frame, text="No data available.", font=("Arial", 14), bg="#f5f5f5").pack(pady=20)
             return
 
         plot_bar_chart(data, title, xlabel="Category", ylabel="Time (minutes)")
@@ -37,26 +37,24 @@ def analytics_tab(notebook):
         canvas.get_tk_widget().pack(fill="both", expand=True, padx=10, pady=10)
         canvas.draw()
 
-    # Frame for the second tab
-    second_tab = ttk.Frame(notebook)
-    notebook.add(second_tab, text="Analytics")
+    # Layout for the second tab
+    frame = tk.Frame(parent, bg="#f5f5f5")
+    frame.pack(fill="both", expand=True)
 
-    # Calendar
-    calendar_frame = ttk.Frame(second_tab)
+    title = tk.Label(frame, text="Analytics", font=("Helvetica", 24, "bold"), bg="#f5f5f5", fg="#333")
+    title.pack(pady=20)
+
+    calendar_frame = ttk.Frame(frame)
     calendar_frame.pack(side="left", fill="y", padx=20, pady=20)
 
     ttk.Label(calendar_frame, text="Select a Date", font=("Helvetica", 18, "bold")).pack(pady=20)
     calendar = Calendar(calendar_frame, selectmode="day", date_pattern="yyyy-mm-dd", font=("Helvetica", 12))
     calendar.pack(pady=10)
 
-    # Buttons for viewing day/week analytics
     btn_frame = ttk.Frame(calendar_frame)
     btn_frame.pack(pady=20)
     ttk.Button(btn_frame, text="View Day", command=lambda: show_data(False)).pack(side="left", padx=15)
     ttk.Button(btn_frame, text="View Week", command=lambda: show_data(True)).pack(side="left", padx=15)
 
-    # Plot frame for analytics
-    plot_frame = ttk.Frame(second_tab, borderwidth=2, relief="solid")
+    plot_frame = ttk.Frame(frame, borderwidth=2, relief="solid")
     plot_frame.pack(side="right", fill="both", expand=True, padx=20, pady=20)
-
-    return second_tab
