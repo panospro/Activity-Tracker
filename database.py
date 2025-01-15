@@ -1,27 +1,61 @@
 import sqlite3
+import threading
+from datetime import datetime
 
-# **Database Setup**
+# Global database connection lock
+db_lock = threading.Lock()
+
+def get_db_connection():
+    """Create a new database connection for the current thread"""
+    conn = sqlite3.connect('time_tracking.db')
+    conn.row_factory = sqlite3.Row
+    return conn
+
 def setup_database():
-    with sqlite3.connect('time_tracking.db') as conn:
-        # Create or ensure the `activity_logs` table exists
-        conn.execute('''
-            CREATE TABLE IF NOT EXISTS activity_logs (
-                id INTEGER PRIMARY KEY AUTOINCREMENT,
-                timestamp TEXT,
-                window_title TEXT,
-                category TEXT,
-                time_spent REAL
-            )
-        ''')
+    """Initialize the database and create tables"""
+    try:
+        with get_db_connection() as conn:
+            # Create activity_logs table
+            conn.execute('''
+                CREATE TABLE IF NOT EXISTS activity_logs (
+                    id INTEGER PRIMARY KEY AUTOINCREMENT,
+                    timestamp TEXT DEFAULT (datetime('now')),
+                    window_title TEXT,
+                    process_name TEXT,
+                    category TEXT,
+                    time_spent REAL
+                )
+            ''')
 
-        # Create or ensure the `categories` table exists
-        conn.execute('''
-            CREATE TABLE IF NOT EXISTS categories (
-                id INTEGER PRIMARY KEY AUTOINCREMENT,
-                keyword TEXT,
-                category TEXT
-            )
-        ''')
+            # Create categories table
+            conn.execute('''
+                CREATE TABLE IF NOT EXISTS categories (
+                    id INTEGER PRIMARY KEY AUTOINCREMENT,
+                    keyword TEXT,
+                    category TEXT
+                )
+            ''')
+            
+            conn.commit()
+    except sqlite3.Error as e:
+        print(f"Database setup error: {e}")
+        raise
+
+def log_window_time(window_title, process_name, time_spent):
+    """Log window activity with thread-safe database access"""
+    try:
+        with db_lock:
+            conn = get_db_connection()
+            with conn:
+                conn.execute('''
+                    INSERT INTO activity_logs (timestamp, window_title, process_name, time_spent, category)
+                    VALUES (?, ?, ?, ?, NULL)
+                ''', (datetime.now(), window_title, process_name, time_spent))
+    except sqlite3.Error as e:
+        print(f"Error logging window time: {e}")
+    finally:
+        if conn:
+            conn.close()
 
 # **Clear 'Other' Category Data**
 def clear_other_category_data():

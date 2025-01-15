@@ -1,22 +1,13 @@
 import time
-import sqlite3
 import win32gui
 import win32process
 import psutil
-from datetime import datetime
 import threading
+from database import log_window_time
 
-# TODO: Make it show the picture of process name
+# Get the active window title and the process name
 def get_active_window_title():
     try:
-        # while True:
-        #     hwnd = win32gui.GetForegroundWindow()  # Active window handle
-        #     window_title = win32gui.GetWindowText(hwnd)  # Active window title
-        #     _, pid = win32process.GetWindowThreadProcessId(hwnd)
-        #     process_name = psutil.Process(pid).name()
-        #     print(process_name)
-        #     time.sleep(1) 
-
         hwnd = win32gui.GetForegroundWindow()  # Active window handle
         window_title = win32gui.GetWindowText(hwnd)  # Active window title
         _, pid = win32process.GetWindowThreadProcessId(hwnd)
@@ -24,32 +15,21 @@ def get_active_window_title():
 
         # Check if the process is File Explorer (explorer.exe) and window title contains folder-related terms
         if process_name.lower() == "explorer.exe":
-            return 'Folder'
+            return 'Folder', process_name
 
         if window_title:
-            return window_title
+            return window_title, process_name
 
-        return f"Unknown Window (Process: {process_name})"
+        return f"Unknown Window", process_name
     except Exception as e:
-        return f"Error retrieving window title: {e}"
-
-def log_window_time(window_title, time_spent):
-    with sqlite3.connect('time_tracking.db') as conn:
-        conn.execute(
-            '''
-            INSERT INTO activity_logs (timestamp, window_title, time_spent, category)
-            VALUES (?, ?, ?, NULL)
-            ''',
-            (datetime.now(), window_title, time_spent)
-        )
-
-# Calculate the time a window is active
 # TODO: Maybe remove the logs and see if the time calculation is ok (because of rounds)
+        return f"Error retrieving window title: {e}", "Unknown Process"
 
 # Global flag to control the tracking thread
 tracking_active = False
 tracking_thread_instance = None
 
+# Start or stop the tracking process
 def track_active_window(start_tracking: bool):
     global tracking_active, tracking_thread_instance
 
@@ -57,21 +37,23 @@ def track_active_window(start_tracking: bool):
         def tracking_thread():
             global tracking_active
             current_window = None
+            current_process = None
             start_time = time.time()
 
             while tracking_active:  # Continue while the tracking is active
-                active_window = get_active_window_title()
+                active_window, process_name = get_active_window_title()
 
-                if active_window != current_window:
+                if active_window != current_window or process_name != current_process:
                     # Log time spent on the previous window
                     if current_window is not None:
                         end_time = time.time()
                         time_spent = round(end_time - start_time, 2)
-                        log_window_time(current_window, time_spent)
-                        print(f"Logged: {current_window} - {time_spent}s")
+                        log_window_time(current_window, current_process, time_spent)
+                        print(f"Logged: {current_window} ({current_process}) - {time_spent}s")
 
-                    # Update to the new window
+                    # Update to the new window and process
                     current_window = active_window
+                    current_process = process_name
                     start_time = time.time()
 
                 time.sleep(1)  # Check every second
