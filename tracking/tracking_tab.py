@@ -149,90 +149,53 @@ def tracking_tab(parent):
             if tracking_active:
                 frame.after(1000, update_tracking_data)
 
-
     def toggle_tracking():
         global tracking_active, window_times, session_start_time
-        
-        # If we're stopping tracking, log final times
-        if tracking_active:
-            current_time = time.time()
-            for window_key, start_time in current_windows.items():
-                process_name, window_title = window_key.split('|', 1)
-                final_time = current_time - start_time
-                if final_time > 0:
-                    record_window_activity(window_title, process_name, final_time)
-        
-        tracking_active = not tracking_active
+        current_time = time.time()
 
         if tracking_active:
-            # Clear previous data
+            # Log final times when stopping tracking
+            for window_key, start_time in current_windows.items():
+                process_name, window_title = window_key.split('|', 1)
+                final_time = current_time - start_time  # Use the stored current time
+                if final_time > 0:
+                    record_window_activity(window_title, process_name, final_time)
+
+        tracking_active = not tracking_active
+        session_start_time = current_time if tracking_active else None  # Set session_start_time using stored time
+
+        # Reset or update UI based on tracking state
+        if tracking_active:
             tree.delete(*tree.get_children())
             process_icons.clear()
             window_times.clear()
             current_windows.clear()
-            
-            # Set session start time
-            session_start_time = time.time()
 
-            # Start new tracking session
-            thread = threading.Thread(target=tracking_thread, daemon=True)
-            thread.start()
-            
-            tracking_button.config(
-                text="⏹ Stop Tracking",
-                bg="#FF4136",
-                activebackground="#FF6F61"
-            )
+            threading.Thread(target=tracking_thread, daemon=True).start()
+            tracking_button.config(text="⏹ Stop Tracking", bg="#FF4136", activebackground="#FF6F61")
             status_label.config(text="Tracking is ON", fg="#28A745")
             update_timer()
             update_tracking_data()
         else:
-            tracking_button.config(
-                text="▶ Start Tracking",
-                bg="#007BFF",
-                activebackground="#66A2FF"
-            )
+            tracking_button.config(text="▶ Start Tracking", bg="#007BFF", activebackground="#66A2FF")
             status_label.config(text="Tracking is OFF", fg="#DC3545")
-            session_start_time = None
 
     # Main frame
     frame = tk.Frame(parent, bg="#F5F5F5")
     frame.pack(fill="both", expand=True)
 
     # Timer Label
-    timer_label = tk.Label(
-        frame,
-        text="00:00:00",
-        font=("Helvetica", 36, "bold"),
-        bg="#F5F5F5",
-        fg="#333",
-    )
+    timer_label = tk.Label(frame, text="00:00:00", font=("Helvetica", 36, "bold"), bg="#F5F5F5", fg="#333")
     timer_label.pack(pady=20)
 
     # Status label
-    status_label = tk.Label(
-        frame,
-        text="Tracking is OFF",
-        font=("Helvetica", 14, "italic"),
-        bg="#F5F5F5",
-        fg="#DC3545",
-    )
+    status_label = tk.Label(frame, text="Tracking is OFF", font=("Helvetica", 14, "italic"), bg="#F5F5F5", fg="#DC3545")
     status_label.pack(pady=10)
 
     # Start/Stop Tracking Button
     tracking_button = tk.Button(
-        frame,
-        text="▶ Start Tracking",
-        command=toggle_tracking,
-        font=("Helvetica", 14, "bold"),
-        bg="#007BFF",
-        fg="#FFF",
-        padx=20,
-        pady=10,
-        relief="flat",
-        activebackground="#66A2FF",
-        activeforeground="#FFF",
-    )
+        frame, text="▶ Start Tracking", command=toggle_tracking, font=("Helvetica", 14, "bold"), bg="#007BFF",
+        fg="#FFF", padx=20, pady=10, relief="flat", activebackground="#66A2FF",activeforeground="#FFF")
     tracking_button.pack(pady=20)
 
     # Data frame
