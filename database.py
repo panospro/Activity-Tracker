@@ -12,23 +12,44 @@ def get_db_connection():
     return conn
 
 def setup_database():
-    """Initialize the database and create tables"""
+    """Initialize the database and create/update tables"""
     try:
         with get_db_connection() as conn:
-            # Create activity_logs table
-            conn.execute('''
-                CREATE TABLE IF NOT EXISTS activity_logs (
-                    id INTEGER PRIMARY KEY AUTOINCREMENT,
-                    timestamp TEXT DEFAULT (datetime('now')),
-                    window_title TEXT,
-                    process_name TEXT,
-                    category TEXT,
-                    time_spent REAL
-                )
-            ''')
+            # Check if we need to migrate the database
+            cursor = conn.cursor()
+            
+            # Check if activity_logs table exists
+            cursor.execute("""
+                SELECT name FROM sqlite_master 
+                WHERE type='table' AND name='activity_logs'
+            """)
+            
+            if cursor.fetchone() is None:
+                # Create new table
+                cursor.execute('''
+                    CREATE TABLE activity_logs (
+                        id INTEGER PRIMARY KEY AUTOINCREMENT,
+                        timestamp TEXT DEFAULT (datetime('now')),
+                        window_title TEXT,
+                        process_name TEXT,
+                        category TEXT,
+                        time_spent REAL
+                    )
+                ''')
+            else:
+                # Check if process_name column exists
+                cursor.execute("PRAGMA table_info(activity_logs)")
+                columns = [column[1] for column in cursor.fetchall()]
+                
+                if 'process_name' not in columns:
+                    # Add process_name column if it doesn't exist
+                    cursor.execute('''
+                        ALTER TABLE activity_logs
+                        ADD COLUMN process_name TEXT
+                    ''')
 
-            # Create categories table
-            conn.execute('''
+            # Create categories table if it doesn't exist
+            cursor.execute('''
                 CREATE TABLE IF NOT EXISTS categories (
                     id INTEGER PRIMARY KEY AUTOINCREMENT,
                     keyword TEXT,
@@ -54,7 +75,7 @@ def log_window_time(window_title, process_name, time_spent):
     except sqlite3.Error as e:
         print(f"Error logging window time: {e}")
     finally:
-        if conn:
+        if 'conn' in locals():
             conn.close()
 
 # **Clear 'Other' Category Data**
