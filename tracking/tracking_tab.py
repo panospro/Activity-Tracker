@@ -1,74 +1,18 @@
 import tkinter as tk
 import time
-import psutil
-import win32gui
-import win32process
 from PIL import Image
 import os 
 import threading
-from database import setup_database, log_window_time
-from utils import download_process_icon
+from database import setup_database, record_window_activity
+from tracking.utils import get_window_info, format_time
 from tkinter import ttk, PhotoImage
 from collections import defaultdict
+from utils import download_process_icon
 
 tracking_active = False
 window_times = defaultdict(float)  # Store cumulative time for each window
 current_windows = {}  # Store current window sessions
 session_start_time = None  # Global start time for the session
-
-def is_valid_window(hwnd):
-    """Check if the window is valid for tracking"""
-    try:
-        if not hwnd or hwnd == 0:
-            return False
-            
-        # Check if window is visible
-        if not win32gui.IsWindowVisible(hwnd):
-            return False
-            
-        # Get window title
-        title = win32gui.GetWindowText(hwnd)
-        if not title:
-            return False
-            
-        # Try to get process ID
-        _, pid = win32process.GetWindowThreadProcessId(hwnd)
-        if pid <= 0:
-            return False
-            
-        # Try to get process name
-        try:
-            process = psutil.Process(pid)
-            process_name = process.name()
-            if not process_name:
-                return False
-        except (psutil.NoSuchProcess, psutil.AccessDenied):
-            return False
-            
-        return True
-    except Exception:
-        return False
-
-def get_window_info():
-    """Get current window information with error handling"""
-    try:
-        hwnd = win32gui.GetForegroundWindow()
-        
-        if not is_valid_window(hwnd):
-            return None
-            
-        window_title = win32gui.GetWindowText(hwnd)
-        _, pid = win32process.GetWindowThreadProcessId(hwnd)
-        process_name = psutil.Process(pid).name()
-        
-        return {
-            'window_title': window_title,
-            'process_name': process_name,
-            'window_key': f"{process_name}|{window_title}"
-        }
-    except Exception as e:
-        print(f"Error getting window info: {e}")
-        return None
 
 def tracking_thread():
     """Thread function to track window activity"""
@@ -95,7 +39,7 @@ def tracking_thread():
                     elapsed = current_time - current_windows[window_key]
                     window_times[window_key] += elapsed
                     # Log the activity when switching windows
-                    log_window_time(
+                    record_window_activity(
                         current_info['window_title'],
                         current_info['process_name'],
                         elapsed
@@ -114,18 +58,6 @@ def tracking_thread():
             thread = threading.Thread(target=tracking_thread, daemon=True)
             thread.start()
 
-def format_time(seconds):
-    """Convert seconds to human readable time format"""
-    hours = int(seconds // 3600)
-    minutes = int((seconds % 3600) // 60)
-    seconds = int(seconds % 60)
-    if hours > 0:
-        return f"{hours}h {minutes}m {seconds}s"
-    elif minutes > 0:
-        return f"{minutes}m {seconds}s"
-    else:
-        return f"{seconds}s"
-
 def tracking_tab(parent):
     global tracking_active, window_times, session_start_time
     tracking_active = False
@@ -135,21 +67,23 @@ def tracking_tab(parent):
     except Exception as e:
         print(f"Failed to setup database: {e}")
 
-    def get_session_time():
-        """Get the current session duration"""
-        if not session_start_time or not tracking_active:
-            return 0
-        return time.time() - session_start_time
-
     def update_timer():
-        """Update the main timer display"""
-        if tracking_active:
-            elapsed_time = int(get_session_time())
+        """
+        Update the main timer display based on the current session duration.
+        If the session is inactive, it shows a default time (00:00:00).
+        """
+        if tracking_active and session_start_time:
+            elapsed_time = int(time.time() - session_start_time)
             hours = elapsed_time // 3600
             minutes = (elapsed_time % 3600) // 60
             seconds = elapsed_time % 60
             timer_label.config(text=f"{hours:02}:{minutes:02}:{seconds:02}")
-            timer_label.after(1000, update_timer)
+        else:
+            # Display default time when tracking is inactive
+            timer_label.config(text="00:00:00")
+        
+        # Schedule the next update
+        timer_label.after(1000, update_timer)
 
     def update_tracking_data():
         """Update the treeview with current tracking data"""
@@ -166,7 +100,7 @@ def tracking_tab(parent):
                 # Get window title and process name from the key
                 process_name, window_title = window_key.split('|', 1)
                 # Log the activity
-                log_window_time(window_title, process_name, elapsed)
+                record_window_activity(window_title, process_name, elapsed)
                 current_windows[window_key] = current_time
 
             # Clear existing items
@@ -226,7 +160,7 @@ def tracking_tab(parent):
                 process_name, window_title = window_key.split('|', 1)
                 final_time = current_time - start_time
                 if final_time > 0:
-                    log_window_time(window_title, process_name, final_time)
+                    record_window_activity(window_title, process_name, final_time)
         
         tracking_active = not tracking_active
 

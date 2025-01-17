@@ -62,8 +62,8 @@ def setup_database():
         print(f"Database setup error: {e}")
         raise
 
-def log_window_time(window_title, process_name, time_spent):
-    """Log window activity with thread-safe database access"""
+def record_window_activity(window_title, process_name, time_spent):
+    """Record window activity with thread-safe database access"""
     try:
         with db_lock:
             conn = get_db_connection()

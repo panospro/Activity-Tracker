@@ -1,5 +1,5 @@
 import tkinter as tk
-from tracking_tab import tracking_tab
+from tracking.tracking_tab import tracking_tab
 from analytics_tab import analytics_tab
 from PIL import Image, ImageTk
 
