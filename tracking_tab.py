@@ -8,6 +8,7 @@ import os
 import threading
 from database import setup_database, log_window_time
 from utils import download_process_icon
+from tkinter import ttk, PhotoImage
 
 tracking_active = False
 
@@ -34,7 +35,7 @@ def tracking_thread():
                 current_process = new_process
                 start_time = time.time()
 
-            time.sleep(1)
+            time.sleep(1) # TODO: Change that if needed
             
         if current_window is not None:
             time_spent = time.time() - start_time
@@ -70,57 +71,35 @@ def tracking_tab(parent):
             _, pid = win32process.GetWindowThreadProcessId(hwnd)
             process_name = psutil.Process(pid).name()
 
-            if window_title != history_frame.current_window or process_name != history_frame.current_process:
-                try:
-                    # Create new entry frame for this activity
-                    entry_frame = tk.Frame(history_frame, bg="#FFFFFF", relief="ridge", bd=1)
-                    entry_frame.pack(fill="x", padx=5, pady=2)
-                    
-                    # Add timestamp
-                    timestamp = time.strftime("%H:%M:%S")
-                    time_label = tk.Label(
-                        entry_frame,
-                        text=timestamp,
-                        font=("Helvetica", 10),
-                        bg="#FFFFFF",
-                        fg="#666"
-                    )
-                    time_label.pack(side="left", padx=5)
-                    
-                    # Try to load and display icon
-                    icon_path = download_process_icon(process_name)
-                    if icon_path and os.path.exists(icon_path):
+            # Check if the process group exists
+            if process_name not in process_tree_items:
+                icon_path = download_process_icon(process_name)
+                icon_image = None
+
+                if icon_path and os.path.exists(icon_path):
+                    try:
                         pil_image = Image.open(icon_path)
-                        pil_image = pil_image.resize((16, 16), Image.Resampling.LANCZOS)
-                        tk_image = tk.PhotoImage(file=icon_path)
-                        icon_label = tk.Label(
-                            entry_frame,
-                            image=tk_image,
-                            bg="#FFFFFF"
-                        )
-                        icon_label.image = tk_image
-                        icon_label.pack(side="left", padx=5)
-                    
-                    # Add window title and process name
-                    info_label = tk.Label(
-                        entry_frame,
-                        text=f"{window_title} ({process_name})",
-                        font=("Helvetica", 10),
-                        bg="#FFFFFF",
-                        fg="#333",
-                        anchor="w"
-                    )
-                    info_label.pack(side="left", fill="x", expand=True, padx=5)
-                    
-                    # Update current window/process tracking
-                    history_frame.current_window = window_title
-                    history_frame.current_process = process_name
-                    
-                    # Ensure the newest entry is visible
-                    history_canvas.yview_moveto(1.0)
-                    
-                except Exception as e:
-                    print(f"Error updating history: {e}")
+                        pil_image = pil_image.resize((30, 30), Image.Resampling.LANCZOS)
+                        icon_image = PhotoImage(file=icon_path)
+                    except Exception as e:
+                        print(f"Failed to load icon for {process_name}: {e}")
+                
+                # Add a new process group with the icon
+                process_tree_items[process_name] = tree.insert(
+                    "", "end", text=process_name, image=icon_image, open=True
+                )
+                if icon_image:
+                    process_icons[process_name] = icon_image  # Store reference to prevent garbage collection
+
+            # Add a new window title under the process group
+            timestamp = time.strftime("%H:%M:%S")
+            tree.insert(
+                process_tree_items[process_name], "end",
+                text=f"{window_title} [{timestamp}]"
+            )
+
+            # Update the view to show new data
+            tree.yview_moveto(1.0)
 
             if tracking_active:
                 frame.after(1000, update_tracking_data)
@@ -132,11 +111,10 @@ def tracking_tab(parent):
 
         if tracking_active:
             # Clear previous history
-            for widget in history_frame.winfo_children():
-                widget.destroy()
-            history_frame.current_window = None
-            history_frame.current_process = None
-            
+            tree.delete(*tree.get_children())
+            process_tree_items.clear()
+            process_icons.clear()
+
             # Start new tracking session
             thread = threading.Thread(target=tracking_thread, daemon=True)
             thread.start()
@@ -201,37 +179,16 @@ def tracking_tab(parent):
     data_frame = tk.Frame(frame, bg="#FFFFFF", relief="groove", bd=2)
     data_frame.pack(fill="both", expand=True, padx=20, pady=20)
 
-    # Create a frame with scrollbar for history
-    history_container = tk.Frame(data_frame, bg="#FFFFFF")
-    history_container.pack(fill="both", expand=True, padx=5, pady=5)
+    # Style Treeview for row height
+    style = ttk.Style()
+    style.configure("Treeview", rowheight=50)  # Set row height to fit the icon
 
-    # Add a canvas for scrolling
-    history_canvas = tk.Canvas(
-        history_container,
-        bg="#FFFFFF",
-        highlightthickness=0
-    )
-    history_scrollbar = tk.Scrollbar(
-        history_container,
-        orient="vertical",
-        command=history_canvas.yview
-    )
-    history_frame = tk.Frame(history_canvas, bg="#FFFFFF")
-    
-    # Configure scrolling
-    history_frame.bind(
-        "<Configure>",
-        lambda e: history_canvas.configure(scrollregion=history_canvas.bbox("all"))
-    )
-    history_canvas.create_window((0, 0), window=history_frame, anchor="nw")
-    history_canvas.configure(yscrollcommand=history_scrollbar.set)
-    
-    # Pack scrolling components
-    history_scrollbar.pack(side="right", fill="y")
-    history_canvas.pack(side="left", fill="both", expand=True)
-    
-    # Add attributes to history_frame to track current window/process
-    history_frame.current_window = None
-    history_frame.current_process = None
+    # Treeview for grouped processes
+    tree = ttk.Treeview(data_frame)
+    tree.pack(fill="both", expand=True, padx=5, pady=5)
+
+    # Dictionaries to store process groups and icons
+    process_tree_items = {}
+    process_icons = {}
 
     return frame
