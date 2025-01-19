@@ -1,6 +1,9 @@
 import psutil
 import win32gui
 import win32process
+import os
+from tkinter import PhotoImage
+from utils import download_process_icon
 
 def get_window_info():
     """
@@ -55,3 +58,15 @@ def format_time(seconds):
         return f"{minutes}m {seconds}s"
     else:
         return f"{seconds}s"
+
+def load_process_icon(process_name, process_icons):
+    """Retrieve or download the process icon for the given process name."""
+    if process_name not in process_icons:
+        icon_path = download_process_icon(process_name)
+        if icon_path and os.path.exists(icon_path):
+            try:
+                # pil_image = Image.open(icon_path).resize((30, 30), Image.Resampling.LANCZOS)
+                process_icons[process_name] = PhotoImage(file=icon_path)
+            except Exception as e:
+                print(f"Failed to load icon for {process_name}: {e}")
+    return process_icons.get(process_name)
