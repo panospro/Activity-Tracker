@@ -75,7 +75,7 @@ def update_tracking_data(tree, frame):
     for process_name, windows in process_groups.items():
         total_time = sum(time for _, time in windows)
         icon_image = load_process_icon(process_name, process_icons)
-        process_item = tree.insert("", "end", text=f"{process_name} (Total: {format_time(total_time)})", image=icon_image, open=True)
+        process_item = tree.insert("", "end", text=f"{process_name} (Total: {format_time(total_time)})", image=icon_image, open=False)
 
         for window_title, time_spent in sorted(windows, key=lambda x: x[1], reverse=True):
             tree.insert(process_item, "end", text=f"{window_title} ({format_time(time_spent)})")
@@ -91,14 +91,14 @@ def toggle_tracking(tree, tracking_button, status_label, timer_label, frame):
         session_start_time = time.time()
         threading.Thread(target=tracking_thread, daemon=True).start()
         tracking_button.config(text="⏹ Stop Tracking", bg="#FF4136", activebackground="#FF6F61")
-        status_label.config(text="Tracking is ON", fg="#28A745")
+        status_label.config(text="Tracking Active", fg="#28A745")  # Changed message
         tree.delete(*tree.get_children())
         window_times.clear()
         current_windows.clear()
     else:
         session_start_time = None
         tracking_button.config(text="▶ Start Tracking", bg="#007BFF", activebackground="#66A2FF")
-        status_label.config(text="Tracking is OFF", fg="#DC3545")
+        status_label.config(text="Tracking Paused", fg="#DC3545")  # Changed message
 
     update_timer(timer_label)
     update_tracking_data(tree, frame)
@@ -114,7 +114,7 @@ def tracking_tab(parent):
     timer_label = tk.Label(frame, text="00:00:00", font=("Helvetica", 36, "bold"), bg="#F5F5F5", fg="#333")
     timer_label.pack(pady=20)
 
-    status_label = tk.Label(frame, text="Tracking is OFF", font=("Helvetica", 14, "italic"), bg="#F5F5F5", fg="#DC3545")
+    status_label = tk.Label(frame, text="Tracking Paused", font=("Helvetica", 14, "italic"), bg="#F5F5F5", fg="#DC3545")  # Changed message
     status_label.pack(pady=10)
 
     tracking_button = tk.Button(
