@@ -51,6 +51,27 @@ def update_timer(timer_label):
         timer_label.config(text=f"{hours:02}:{minutes:02}:{seconds:02}")
     timer_label.after(1000, update_timer, timer_label)
 
+def toggle_tracking(tree, tracking_button, status_label, timer_label, frame):
+    """Toggle the tracking state and update UI accordingly."""
+    global tracking_active, session_start_time, window_times, current_windows
+
+    tracking_active = not tracking_active
+    if tracking_active:
+        session_start_time = time.time()
+        threading.Thread(target=tracking_thread, daemon=True).start()
+        tracking_button.config(text="⏹ Stop Tracking", bg="#FF4136", activebackground="#FF6F61")
+        status_label.config(text="Tracking Active", fg="#28A745")  # Changed message
+        tree.delete(*tree.get_children())
+        window_times.clear()
+        current_windows.clear()
+    else:
+        session_start_time = None
+        tracking_button.config(text="▶ Start Tracking", bg="#007BFF", activebackground="#66A2FF")
+        status_label.config(text="Tracking Paused", fg="#DC3545")  # Changed message
+
+    update_timer(timer_label)
+    update_tracking_data(tree, frame)
+
 def update_tracking_data(tree, frame):
     """Update the treeview with the current tracking data."""
     if not tracking_active:
@@ -75,35 +96,13 @@ def update_tracking_data(tree, frame):
     for process_name, windows in process_groups.items():
         total_time = sum(time for _, time in windows)
         icon_image = load_process_icon(process_name, process_icons)
-        process_item = tree.insert("", "end", text=f"{process_name} (Total: {format_time(total_time)})", image=icon_image, open=False)
+        process_item = tree.insert("", "end", values=(process_name, format_time(total_time)),  image=icon_image, open=False)
 
         for window_title, time_spent in sorted(windows, key=lambda x: x[1], reverse=True):
-            tree.insert(process_item, "end", text=f"{window_title} ({format_time(time_spent)})")
-
+            tree.insert(process_item, "end", values=(window_title, format_time(time_spent)))
     frame.after(1000, update_tracking_data, tree, frame)
 
-def toggle_tracking(tree, tracking_button, status_label, timer_label, frame):
-    """Toggle the tracking state and update UI accordingly."""
-    global tracking_active, session_start_time, window_times, current_windows
-
-    tracking_active = not tracking_active
-    if tracking_active:
-        session_start_time = time.time()
-        threading.Thread(target=tracking_thread, daemon=True).start()
-        tracking_button.config(text="⏹ Stop Tracking", bg="#FF4136", activebackground="#FF6F61")
-        status_label.config(text="Tracking Active", fg="#28A745")  # Changed message
-        tree.delete(*tree.get_children())
-        window_times.clear()
-        current_windows.clear()
-    else:
-        session_start_time = None
-        tracking_button.config(text="▶ Start Tracking", bg="#007BFF", activebackground="#66A2FF")
-        status_label.config(text="Tracking Paused", fg="#DC3545")  # Changed message
-
-    update_timer(timer_label)
-    update_tracking_data(tree, frame)
-
-def tracking_tab(parent):
+def tracking_tab(parent): 
     """Create and return the tracking tab frame."""
     global process_icons
     setup_database()
@@ -114,7 +113,7 @@ def tracking_tab(parent):
     timer_label = tk.Label(frame, text="00:00:00", font=("Helvetica", 36, "bold"), bg="#F5F5F5", fg="#333")
     timer_label.pack(pady=20)
 
-    status_label = tk.Label(frame, text="Tracking Paused", font=("Helvetica", 14, "italic"), bg="#F5F5F5", fg="#DC3545")  # Changed message
+    status_label = tk.Label(frame, text="Tracking Paused", font=("Helvetica", 14, "italic"), bg="#F5F5F5", fg="#DC3545")
     status_label.pack(pady=10)
 
     tracking_button = tk.Button(
@@ -129,9 +128,25 @@ def tracking_tab(parent):
 
     style = ttk.Style()
     style.configure("Treeview", rowheight=50)
-
-    tree = ttk.Treeview(data_frame)
+    style.configure("Treeview.Heading", font=("Helvetica", 12, "bold"), foreground="#333")
+    style.configure("Treeview", font=("Helvetica", 10), highlightthickness=0, bd=0)  # styling row font
+    
+    tree = ttk.Treeview(
+        data_frame,
+        columns=("Process Name", "Time Spent"),  # Two additional columns for text
+        show="tree headings"  # 'tree' column will handle icons
+    )
     tree.pack(fill="both", expand=True, padx=5, pady=5)
+
+    # Configure columns
+    tree.heading("#0", text="Icon", anchor="center")  # Ensure the header of the icon column is centered too
+    tree.heading("Process Name", text="Process Name")
+    tree.heading("Time Spent", text="Time Spent")
+
+    tree.column("#0", width=50, anchor="center", minwidth=50)  # Ensuring it's centered and using a defined width
+
+    tree.column("Process Name", width=200, anchor="center")
+    tree.column("Time Spent", width=100, anchor="center")
 
     process_icons = {}
     return frame
