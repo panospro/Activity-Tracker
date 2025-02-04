@@ -2,6 +2,7 @@ import sqlite3
 import numpy as np
 import matplotlib.pyplot as plt
 from matplotlib import cm
+from matplotlib.ticker import MaxNLocator, FuncFormatter
 
 # Fetches data from db
 def fetch_data(query, params=()):
@@ -40,16 +41,39 @@ def plot_pie_chart(data, labels, title):
     plt.title(title, fontsize=14, weight="bold")
 
 def plot_bar_chart(data, title, xlabel, ylabel):
+    # Extract labels and values from the data rows
     labels, values = zip(*[(row[0] or 'Unnamed', row[1]) for row in data])
-    plt.bar(labels, values, color=cm.tab20c(np.linspace(0, 1, len(labels))), width=0.5)
-    plt.title(title, fontsize=14, weight="bold")
-    plt.xlabel(xlabel, fontsize=12)
-    plt.ylabel(ylabel, fontsize=12)
-    plt.xticks(rotation=0, ha="center", fontsize=10)
-    plt.grid(axis="y", linestyle="--", alpha=0.7)
-
-    y_ticks = np.arange(0, np.ceil(max(values) / 30) * 30 + 1, 30)
-    plt.yticks(y_ticks, labels=[f"{i/60:.1f}m" for i in y_ticks])
+    
+    # Create a figure and axis
+    fig, ax = plt.subplots(figsize=(8, 6))
+    
+    # Generate a set of colors for the bars
+    colors = cm.tab20c(np.linspace(0, 1, len(labels)))
+    
+    # Plot the bars
+    ax.bar(labels, values, color=colors, width=0.5)
+    
+    # Set titles and labels with custom styling
+    ax.set_title(title, fontsize=14, weight="bold")
+    ax.set_xlabel(xlabel, fontsize=12)
+    ax.set_ylabel(ylabel, fontsize=12)
+    
+    # Rotate x-axis labels to prevent overlapping and adjust font size
+    ax.tick_params(axis="x", labelrotation=45, labelsize=9)
+    
+    # Add horizontal grid lines for better readability
+    ax.grid(axis="y", linestyle="--", alpha=0.7)
+    
+    # Limit the number of y-axis ticks (e.g., to 5 ticks)
+    ax.yaxis.set_major_locator(MaxNLocator(nbins=5))
+    
+    # Format y-axis ticks to display values as minutes (m)
+    ax.yaxis.set_major_formatter(FuncFormatter(lambda x, pos: f"{x/60:.1f}m"))
+    
+    # Adjust layout to fit elements nicely
+    fig.tight_layout()
+    
+    return fig
 
 # Displays the activity summary with all categories and category 'Other'
 def plot_activity_summary():

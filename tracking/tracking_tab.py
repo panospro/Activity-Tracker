@@ -143,8 +143,7 @@ def tracking_tab(parent):
     tree.heading("Process Name", text="Process Name")
     tree.heading("Time Spent", text="Time Spent")
 
-    tree.column("#0", width=50, anchor="center", minwidth=50)  # Ensuring it's centered and using a defined width
-
+    tree.column("#0", width=200, anchor="center", minwidth=50)  # Ensuring it's centered and using a defined width
     tree.column("Process Name", width=200, anchor="center")
     tree.column("Time Spent", width=100, anchor="center")
 
