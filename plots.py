@@ -4,86 +4,56 @@ import matplotlib.pyplot as plt
 from matplotlib import cm
 from matplotlib.ticker import MaxNLocator, FuncFormatter
 
-# Fetches data from db
 def fetch_data(query, params=()):
+    """Fetch data from the SQLite database."""
     with sqlite3.connect('time_tracking.db') as conn:
         return conn.execute(query, params).fetchall()
 
-# Generates a pie chart
-def plot_pie_chart(data, labels, title):
+def plot_pie_chart(data, title, ax=None):
+    """Generate a donut-style pie chart."""
     counts = [row[1] for row in data]
     labels = [row[0] or 'Unnamed' for row in data]
-    colors = cm.tab20c(np.linspace(0, 1, len(labels)))  # Enhanced color scheme
-
-    # Highlight the largest slice by exploding it slightly
-    # explode = [0.1 if i == counts.index(max(counts)) else 0 for i in range(len(counts))]
-
-    # Create the pie chart
-    wedges, texts, autotexts = plt.pie(
-        counts,
-        labels=labels,
-        autopct='%1.1f%%',
-        startangle=140,
-        colors=colors,
-        # explode=explode,
-        pctdistance=0.85,
-    )
-
-    # Enhance text aesthetics
-    plt.setp(autotexts, size=10, weight="bold", color="white")
-    plt.setp(texts, size=10, weight="bold")
-
-    # Add a circle for a donut chart effect
-    centre_circle = plt.Circle((0, 0), 0.70, fc='white')
-    plt.gca().add_artist(centre_circle)
-
-    # Set title with custom font
-    plt.title(title, fontsize=14, weight="bold")
-
-def plot_bar_chart(data, title, xlabel, ylabel):
-    # Extract labels and values from the data rows
-    labels, values = zip(*[(row[0] or 'Unnamed', row[1]) for row in data])
-    
-    # Create a figure and axis
-    fig, ax = plt.subplots(figsize=(8, 6))
-    
-    # Generate a set of colors for the bars
     colors = cm.tab20c(np.linspace(0, 1, len(labels)))
+    ax = ax or plt.gca()
     
-    # Plot the bars
+    wedges, texts, autotexts = ax.pie(
+        counts, labels=labels, autopct='%1.1f%%', startangle=140,
+        colors=colors, pctdistance=0.85
+    )
+    for text in texts:
+        text.set(fontsize=10, weight="bold")
+    for autotext in autotexts:
+        autotext.set(fontsize=10, weight="bold", color="white")
+    
+    # Add a white circle in the center for a donut effect
+    centre_circle = plt.Circle((0, 0), 0.70, fc='white')
+    ax.add_artist(centre_circle)
+    ax.set_title(title, fontsize=14, weight="bold")
+
+def plot_bar_chart(data, title, xlabel, ylabel, ax=None):
+    """Generate a bar chart."""
+    labels, values = zip(*[(row[0] or 'Unnamed', row[1]) for row in data])
+    if ax is None:
+        fig, ax = plt.subplots(figsize=(8, 6))
+    colors = cm.tab20c(np.linspace(0, 1, len(labels)))
     ax.bar(labels, values, color=colors, width=0.5)
     
-    # Set titles and labels with custom styling
     ax.set_title(title, fontsize=14, weight="bold")
     ax.set_xlabel(xlabel, fontsize=12)
     ax.set_ylabel(ylabel, fontsize=12)
-    
-    # Rotate x-axis labels to prevent overlapping and adjust font size
     ax.tick_params(axis="x", labelrotation=45, labelsize=9)
-    
-    # Add horizontal grid lines for better readability
     ax.grid(axis="y", linestyle="--", alpha=0.7)
-    
-    # Limit the number of y-axis ticks (e.g., to 5 ticks)
     ax.yaxis.set_major_locator(MaxNLocator(nbins=5))
-    
-    # Format y-axis ticks to display values as minutes (m)
     ax.yaxis.set_major_formatter(FuncFormatter(lambda x, pos: f"{x/60:.1f}m"))
     
-    # Adjust layout to fit elements nicely
-    fig.tight_layout()
-    
-    return fig
+    return ax.figure
 
-# Displays the activity summary with all categories and category 'Other'
 def plot_activity_summary():
-    # Fetch total time spent per category
+    """Display an activity summary with a bar chart for total time per category"""
     category_data = fetch_data(
         '''SELECT category, SUM(time_spent) FROM activity_logs 
            WHERE category IS NOT NULL GROUP BY category'''
     )
-
-    # Fetch detailed data for "Other" category
     other_data = fetch_data(
         '''SELECT window_title, SUM(time_spent) FROM activity_logs 
            WHERE category = "Other" GROUP BY window_title'''
@@ -93,21 +63,23 @@ def plot_activity_summary():
         print("No data available to generate a report.")
         return
 
-    # Create subplots dynamically based on available data
     num_plots = 2 if other_data else 1
     fig, axes = plt.subplots(num_plots, 1, figsize=(14, 7), constrained_layout=True)
-    # Ensure axes is iterable
+    # Ensure axes is iterable even when there's only one subplot.
     if num_plots == 1:
         axes = [axes]
-    # Plot category summary
-    plt.sca(axes[0])
 
-    if category_data:
-        plot_bar_chart(category_data,title="Total Time Spent by Category",xlabel="Category",ylabel="Time (seconds)")
-
-    # Plot "Other" category if data exists
+    plot_bar_chart(
+        category_data,
+        title="Total Time Spent by Category",
+        xlabel="Category",
+        ylabel="Time (seconds)",
+        ax=axes[0]
+    )
     if other_data:
-        plt.sca(axes[1])
-        plot_pie_chart(other_data, 'Window Title', 'Time Spent on "Other" Category')
-
+        plot_pie_chart(
+            other_data,
+            title='Time Spent on "Other" Category',
+            ax=axes[1]
+        )
     plt.show()
