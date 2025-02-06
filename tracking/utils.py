@@ -59,6 +59,18 @@ def format_time(seconds):
     else:
         return f"{seconds}s"
 
+import sys
+import os
+
+def resource_path(relative_path):
+    """Get absolute path to resource, works for dev and for PyInstaller."""
+    try:
+        # PyInstaller creates a temp folder and stores path in _MEIPASS
+        base_path = sys._MEIPASS
+    except Exception:
+        base_path = os.path.abspath(".")
+    return os.path.join(base_path, relative_path)
+
 def load_process_icon(process_name, process_icons):
     """Retrieve or download the process icon for the given process name."""
     if process_name not in process_icons:
@@ -66,7 +78,7 @@ def load_process_icon(process_name, process_icons):
         if icon_path and os.path.exists(icon_path):
             try:
                 # pil_image = Image.open(icon_path).resize((30, 30), Image.Resampling.LANCZOS)
-                process_icons[process_name] = PhotoImage(file=icon_path)
+                process_icons[process_name] = PhotoImage(file=resource_path(icon_path))
             except Exception as e:
                 print(f"Failed to load icon for {process_name}: {e}")
     return process_icons.get(process_name)

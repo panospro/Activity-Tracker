@@ -1,13 +1,13 @@
 from calendar_gui import create_gui_calendar
 
-# TODO: Find a way to run it without having vscode open (pyinstaller)
-# TODO: Sync the timers in tracking
-# TODO: See if that approach takes lots of resources
-def main():
-    # NOTE: These dont work here place them where i setupdb
-    # drop_tables()
-    # clear_other_category_data()
-    create_gui_calendar()
+# NOTE: Last update: 
+# 1) Move the contents of everything in C:\Delete-Later (maybe not needed)
+# 2) Run the command python -m nuitka --standalone --msvc=latest --enable-plugin=tk-inter --include-data-dir=icons=icons main.py 
+# 3) Send the main.dist as zip to someone to run the app
+# 4) Run main.exe
 
+# TODO: Remove the console from the user while running the .exe
+# TODO: Find out why for some reason it doesnt run without the python icon named default icon 
+# TODO: Do something with the calendar, show them grouped by .exe
 if __name__ == '__main__':
-    main()
+    create_gui_calendar()

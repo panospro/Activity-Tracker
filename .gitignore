@@ -3,3 +3,4 @@
 *.db
 /icons
 *.pyc
+/main.dist

@@ -3,6 +3,18 @@ from tracking.tracking_tab import tracking_tab
 from analytics_tab import analytics_tab
 from PIL import Image, ImageTk
 
+import sys
+import os
+
+def resource_path(relative_path):
+    """Get absolute path to resource, works for dev and for PyInstaller."""
+    try:
+        # PyInstaller creates a temp folder and stores path in _MEIPASS
+        base_path = sys._MEIPASS
+    except Exception:
+        base_path = os.path.abspath(".")
+    return os.path.join(base_path, relative_path)
+
 def create_gui_calendar():
     root = tk.Tk()
     root.title("Time Tracker Dashboard")
@@ -36,7 +48,9 @@ def create_gui_calendar():
                 btn.config(bg="#2C3E50")
         
         # Resize and load the icon
-        icon_image = Image.open(icon_path).resize((40, 40), Image.ANTIALIAS)
+        # icon_image = Image.open(resource_path(icon_path)).resize((40, 40), Image.ANTIALIAS)
+        icon_image = Image.open(resource_path(icon_path)).resize((40, 40), Image.Resampling.LANCZOS)
+
         icon = ImageTk.PhotoImage(icon_image)
 
         btn = tk.Button(
